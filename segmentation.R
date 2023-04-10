@@ -2,23 +2,18 @@
 #install.packages("qpcR")
 #install.packages("minpack.lm")
 
-
 library(readxl)
 library(dplyr)
 library(readr)
 library(ggplot2)
+
 
 #Make same code for brachioradialis
 #Made a loop to make the same for all the patients 
 
 #Import the emg data gathered by mdurance from each patient and store it in a dataframe
 
-mdur_prueba1 <- read_delim("Desktop/TFG_testsR/seg_prueba1.csv", 
-                          delim = ";", escape_double = FALSE, 
-                          col_types = cols(...1 = col_skip(), `rms_mean_(µV)` = col_skip(), `rms_mean_sec_(µV/s)` = col_skip(), 
-                                                                               `mvc_(µV)` = col_skip(), `mvc_h_(µV)` = col_skip(), 
-                                                                               ...6 = col_skip()), trim_ws = TRUE)
-
+mdur_prueba1 <- seg_prueba1
 View(mdur_prueba1)
 #-----------------------------------------------------------------------------
 # Create a new dataframe with normalized values for each column
@@ -159,19 +154,23 @@ combined_df # Print the combined data frame
 # Create a dataframe to with the amplitudes normalized 
 
 mdur_norm <- mdur_prueba1
-mdur_norm$`rms_biceps_brachii_(right)_(µV)` <- mdur_norm$`rms_biceps_brachii_(right)_(µV)` / max(mdur_norm$`rms_biceps_brachii_(right)_(µV)`)
-mdur_norm$`rms_triceps_brachii_long_(right)_(µV)` <- mdur_norm$`rms_triceps_brachii_long_(right)_(µV)`/ max(mdur_norm$`rms_triceps_brachii_long_(right)_(µV)`)
-# view the normalized dataframe
-View(mdur_norm)
+max_bicep <- max(mdur_norm$`rms_biceps_brachii_(right)_(µV)`)
+max_tricep <- max(mdur_norm$`rms_triceps_brachii_long_(right)_(µV)`)
 
+# apply the function to each bicep and tricep column
+bicep_replace <- c("bicep1","bicep2","bicep3")
+tricep_replace <- c("tricep1","tricep2","tricep3")
 
-#seg_prueba1 <- read_excel("Desktop/TFG_testsR/seg_prueba1.xls", 
-#                          col_types = c("skip", "skip", "skip", 
-#                                        "skip", "skip", "skip", "numeric", 
-#                                        "numeric", "numeric"))
-#View(seg_prueba1)
+norm_ampli <- combined_df
+norm_ampli[bicep_replace] <- norm_ampli[bicep_replace] / max_bicep
+norm_ampli[tricep_replace] <- norm_ampli[tricep_replace] / max_tricep
+norm_ampli
+ 
+#Replace the missing values with 0 instead of NA
+norm_ampli <- norm_ampli %>% 
+  mutate_if(is.numeric, ~replace_na(., 0))
+norm_ampli
 
-#?read_excel
 
 mean(mdur_norm$`frames_(0.25s)`)
 mean(mdur_norm$`rms_biceps_brachii_(right)_(µV)`)
@@ -195,12 +194,20 @@ time_norm <- lapply(time_df[,1:2], normalize)
 
 # convert the resulting matrix back to a dataframe
 time_norm <- as.data.frame(time_norm)
-time_norm
-#-----------------------------------------------------------------------------------------
+time_norm <- time_norm[1]
+#--------------------------------------------------------------------------------
 #Graph the each segment with the x and y axis normalized
 
+norm_ampli <- norm_ampli %>%
+  select(2, 3, 5, 6, 8, 9)
+all_norm_df <- cbind(time_norm,norm_ampli)
 
+all_norm_df
 
+all_norm_df %>%
+  ggplot(aes(frame1,bicep1)) + geom_line()
+all_norm_df %>%
+  ggplot(aes(frame1,tricep1)) + geom_line()
 #--------------------------------------------------------------------------------
 
 
