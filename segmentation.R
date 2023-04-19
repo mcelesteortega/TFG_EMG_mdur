@@ -1,6 +1,8 @@
 #install.packages('tidyverse')
 #install.packages("qpcR")
 #install.packages("minpack.lm")
+#install.packages("ggplot2")
+
 
 library(readxl)
 library(dplyr)
@@ -9,10 +11,25 @@ library(ggplot2)
 
 
 #Make same code for brachioradialis
-#Made a loop to make the same for all the patients 
+#Made a loop to make this process for all for all the patients 
 
-#Import the emg data gathered by mdurance from each patient and store it in a dataframe
+#Import all of the emg files data gathered by mdurance from each patient 
 
+setwd("/Users/mariaceleste/Desktop/TFG_testsR/Emg_anaysis/slow_bicepTricep")
+temp = list.files(pattern="*.csv")
+#
+
+temp[1]
+allfiles = lapply(temp, read.delim(temp[1],sep = ","))
+allfiles
+
+test <- NULL
+for (file in temp) {
+  test_i <- read.csv(file)
+  data_i$filename <- file # add filename as a column
+  data <- rbind(data, data_i) # combine data frames
+}
+#-----------------------------------------------------------------------------
 mdur_prueba1 <- seg_prueba1
 View(mdur_prueba1)
 #-----------------------------------------------------------------------------
@@ -165,11 +182,13 @@ norm_ampli <- combined_df
 norm_ampli[bicep_replace] <- norm_ampli[bicep_replace] / max_bicep
 norm_ampli[tricep_replace] <- norm_ampli[tricep_replace] / max_tricep
 norm_ampli
+
+#write.csv(norm_ampli, "data_normalized.csv", row.names = FALSE)
  
 #Replace the missing values with 0 instead of NA
-norm_ampli <- norm_ampli %>% 
-  mutate_if(is.numeric, ~replace_na(., 0))
-norm_ampli
+#norm_ampli <- norm_ampli %>% 
+#  mutate_if(is.numeric, ~replace_na(., 0))
+#norm_ampli
 
 
 mean(mdur_norm$`frames_(0.25s)`)
@@ -178,36 +197,51 @@ mean(mdur_norm$`rms_triceps_brachii_long_(right)_(µV)`)
 
 # Print the new dataframe
 #-----------------------------------------------------------------------------------------
+# Make a normalization to the time axis interpolation: approx()
+
+
+#interpolate <- approx(1:length(df_seg3$frame3), df_seg3$bicep3, n = 101)$y
+
+
+frame_interpolation <- data.frame(lapply(norm_ampli,
+                                          function(x) approx(1:length(x),
+                                                             x,
+                                                             n = 100)$y))
+frame_interpolation
+#-----------------------------------------------------------------------------------------
 # Make a normalization to the time axis with the min-max scaling method
 
-time_df <- combined_df[,c(1,4,7)]
+time_df <- frame_interpolation[,c(1,4,7)]
 time_df
 
 # define a function to perform min-max scaling
 normalize <- function(x) {
-  x <- x[!is.na(x)]
+ # x <- x[!is.na(x)]
   return((x - min(x)) / (max(x) - min(x)))
 }
 
 # apply the function to each column
-time_norm <- lapply(time_df[,1:2], normalize)
+time_norm <- lapply(time_df[,1:3], normalize)
+
 
 # convert the resulting matrix back to a dataframe
 time_norm <- as.data.frame(time_norm)
 time_norm <- time_norm[1]
+time_norm
 #--------------------------------------------------------------------------------
 #Graph the each segment with the x and y axis normalized
 
-norm_ampli <- norm_ampli %>%
+frame_interpolation <- frame_interpolation %>%
   select(2, 3, 5, 6, 8, 9)
-all_norm_df <- cbind(time_norm,norm_ampli)
+all_norm_df <- cbind(time_norm,frame_interpolation)
 
 all_norm_df
 
 all_norm_df %>%
-  ggplot(aes(frame1,bicep1)) + geom_line()
-all_norm_df %>%
-  ggplot(aes(frame1,tricep1)) + geom_line()
+  ggplot(aes(frame1,bicep1)) + geom_line() + ggplot(aes(frame1,tricep1)) 
+
+
+
 #--------------------------------------------------------------------------------
 
 
