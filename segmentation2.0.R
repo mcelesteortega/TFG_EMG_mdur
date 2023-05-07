@@ -45,45 +45,86 @@ cut_threshold
 #Identify the peaks that surpass a threshold to later know where to cut the segments 
 peaks <- findpeaks(emg_signal, minpeakheight = cut_threshold*1.6)
 
+#get the position of the peaks 
 peak_positions <- peaks[,2]-1
 peak_positions
 # Print the list of peak positions
 length(peaks)
-#get the position of the peaks 
-peak_position <- c()
 
+# Define a list to store the groups of rows/segmensts found 
+group_list <- list()
+# Extract the rows that meet the threshold condition and store them in different columns
+
+
+# Initialize variables to define the start and end of each interval
+
+start_count <- 0
+end_count <- 0
+start_time <- 0
+end_time <- 0
 #if after 5 samples there is not peak than keep the last peak found and start a new segment
 #Slow - si la diferencia de posicion entre picos es mas de 15 entonces cortar en el último pico y me quedo con el ultimo minimo
 min_distance = 15
-segments <- list()
-start_idx <- peaks[1]
-peak_positions[2] - peak_positions[2 - 1]
+list_segments <- list()
+start_idx <- peaks[1,3]-1
+start_idx
+length(peak_positions)
 
-for (i in 2:length(peaks)) {
- 
+# Loop through each peak found 
+for (i in 1:length(peak_positions)) {
   # Check if the current peak is close to the previous peak
-  if (peaks[i] - peaks[i - 1] > min_distance) {
-    end_idx <- peaks[i]
+  if (peak_positions[i + 1] - peak_positions[i] < min_distance) {
+    
+    # If it does, start a new segment or add to the current one
+    if (start_count == 0) {
+      start_idx <- peaks[i,3]-1
+      start_count <- i
+    }
+    end_idx <- peaks[i, 4]-1
+    
+    
   } else {
+    
+    # If it does not, store the current segment and reset the variables
+    if (start_count > 0) {
+      #segment <- emg_signal[start_idx:end_idx]
+      #list_segments[[length(segments) + 1]] <- segment
+      
+      current_df <- mdur_prueba1[start_idx:end_idx, c(1, 2, 3)]
+      group_list[[length(group_list)+1]] <- current_df
+    }
+    start_count <- 0
+    start_idx <- peaks[i,3]-1
+    end_idx <- peaks[i, 4]-1
     # Store the previous segment and start a new one
-    segment <- x[start_idx:end_idx]
-    segments[[length(segments) + 1]] <- segment
-    start_idx <- peaks[i]
-    end_idx <- peaks[i]
   }
 }
-# Store the last segment
-segment <- x[start_idx:end_idx]
-segments[[length(segments) + 1]] <- segment
 
-
-#we go through the peaks excluding the first and the last peaks found
-for (i in 2:(length(peaks) - 1)) {
-  start_idx <- peaks[i] 
-  end_idx <- peaks[i + 1] - 1
-  segment <- x[start_idx:end_idx]
-  segments[[i - 1]] <- segment
+if (start_row > 0) {
+  current_df <- mdur_prueba1[start_idx:end_idx, c(1, 2, 3)]
+  group_list[[length(group_list)+1]] <- current_df
 }
+
+#If the segments found are to small than discard them
+df_seg1 <- as.data.frame(group_list[1])
+colnames(df_seg1)[1] = "frame1"
+colnames(df_seg1)[2] = "bicep1"
+colnames(df_seg1)[3] = "tricep1"
+df_seg1
+
+df_seg2 <- as.data.frame(group_list[2])
+colnames(df_seg2)[1] = "frame2"
+colnames(df_seg2)[2] = "bicep2"
+colnames(df_seg2)[3] = "tricep2"
+df_seg2
+
+df_seg3 <- as.data.frame(group_list[3])
+colnames(df_seg3)[1] = "frame3"
+colnames(df_seg3)[2] = "bicep3"
+colnames(df_seg3)[3] = "tricep3"
+df_seg3
+
+
 
 # Interpolate values at peak locations
 env_peaks <- approx(1:length(emg_signal), emg_signal, peaks)
