@@ -7,15 +7,15 @@ library(pracma)
 
 
 #Load all the files at once                                                                         
-mdur_prueba1 <- X20_slow_y_bt
+mdur_test <- X10_slow_y_bt
 #X20_slow_y_bt
 #X10_slow_y_bt
 #X25_fast_y_bt
 #seg_prueba1
-View(mdur_prueba1)
+View(mdur_test)
 #-----------------------------------------------------------------------------
 # Create a new dataframe with normalized values for each column
-mdur_norm <- mdur_prueba1
+mdur_norm <- mdur_test
 mdur_norm$`rms_biceps_brachii_(right)_(µV)` <- mdur_norm$`rms_biceps_brachii_(right)_(µV)` / max(mdur_norm$`rms_biceps_brachii_(right)_(µV)`)
 mdur_norm$`rms_triceps_brachii_long_(right)_(µV)` <- mdur_norm$`rms_triceps_brachii_long_(right)_(µV)`/ max(mdur_norm$`rms_triceps_brachii_long_(right)_(µV)`)
 # view the normalized dataframe
@@ -50,25 +50,24 @@ peak_positions
 # Print the list of peak positions
 length(peaks)
 
-# Define a list to store the groups of rows/segmensts found 
-group_list <- list()
-# Extract the rows that meet the threshold condition and store them in different columns
-
-
-# Initialize variables to define the start and end of each interval
-
-start_count <- 0
-end_count <- 0
 
 #if after 5 samples there is not peak than keep the last peak found and start a new segment
 #Slow - si la diferencia de posicion entre picos es mas de 15 entonces cortar en el último pico y me quedo con el ultimo minimo
-min_distance = 15
-list_segments <- list()
+
 start_idx <- peaks[1,3]
 start_idx
 
+
 peak_positions[1+1] - peak_positions[1]
 length(peak_positions)
+
+# Initialize variables to define the start and end of each interval
+group_list <- list()
+start_count <- 0
+end_count <- 0
+min_distance = 17
+list_segments <- list()
+
 # Loop through each peak found 
 for (i in 1:(length(peak_positions)-1)) {
  
@@ -80,7 +79,7 @@ for (i in 1:(length(peak_positions)-1)) {
       start_idx <- peaks[i,3]
       start_count <- i
     }
-    end_idx <- peaks[i, 4]
+    end_idx <- peaks[i+1, 4]
     
     
   } else {
@@ -90,7 +89,7 @@ for (i in 1:(length(peak_positions)-1)) {
       #segment <- emg_signal[start_idx:end_idx]
       #list_segments[[length(segments) + 1]] <- segment
       
-      current_df <- mdur_prueba1[start_idx:end_idx, c(1, 2, 3)]
+      current_df <- mdur_test[start_idx:end_idx, c(1, 2, 3)]
       group_list[[length(group_list)+1]] <- current_df
     }
     start_count <- 0
@@ -101,16 +100,34 @@ for (i in 1:(length(peak_positions)-1)) {
 }
 
 if (start_count > 0) {
-  current_df <- mdur_prueba1[start_idx:end_idx, c(1, 2, 3)]
+  current_df <- mdur_test[start_idx:end_idx, c(1, 2, 3)]
   group_list[[length(group_list)+1]] <- current_df
 }
 
 #Extract each element of the list y rename the columns
 group_list
 
+#length(group_list[[1]]$`frames_(0.25s)`)
 
-#If the segments found are to small than discard them
+#If there are more than 3 segments found remove the small one 
+if(length(group_list) > 3){
+  for (i in length(group_list)) {
+    get_len <- length(group_list[[i]]$`frames_(0.25s)`)
+    num_segments[[length(num_segments)+1]] <- get_len
+  }
+ ## Find the indices of the 3 largest values/ quedarse con los 3 más grandes viendo los indices 
+  n_largest_indices <- order(num_segments, decreasing = TRUE)[1:3]
+  for(i in length(num_segments)){
+    idx <- num_segments[[i]]
+    new_group_list[[length(new_group_list)+1]] <-  group_list[i]
+    
+  }
+  group_list <- new_group_list
+  
+}
 
+
+print(n_largest_indices)
 
 
 df_seg1 <- as.data.frame(group_list[1])
