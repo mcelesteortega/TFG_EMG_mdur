@@ -4,8 +4,7 @@ library(dplyr)
 library(signal)
 library(gsignal)
 library(pracma)
-library(spectral)
-library(zoo)
+
 
 #Load all the files at once                                                                         
 mdur_prueba1 <- X20_slow_y_bt
@@ -44,7 +43,7 @@ cut_threshold
 
 #Identify the peaks that surpass a threshold to later know where to cut the segments 
 peaks <- findpeaks(emg_signal, minpeakheight = cut_threshold*1.6)
-
+peaks
 #get the position of the peaks 
 peak_positions <- peaks[,2]-1
 peak_positions
@@ -60,27 +59,28 @@ group_list <- list()
 
 start_count <- 0
 end_count <- 0
-start_time <- 0
-end_time <- 0
+
 #if after 5 samples there is not peak than keep the last peak found and start a new segment
 #Slow - si la diferencia de posicion entre picos es mas de 15 entonces cortar en el último pico y me quedo con el ultimo minimo
 min_distance = 15
 list_segments <- list()
-start_idx <- peaks[1,3]-1
+start_idx <- peaks[1,3]
 start_idx
-length(peak_positions)
 
+peak_positions[1+1] - peak_positions[1]
+length(peak_positions)
 # Loop through each peak found 
-for (i in 1:length(peak_positions)) {
+for (i in 1:(length(peak_positions)-1)) {
+ 
   # Check if the current peak is close to the previous peak
-  if (peak_positions[i + 1] - peak_positions[i] < min_distance) {
+  if ((peak_positions[i+1] - peak_positions[i]) < min_distance) {
     
     # If it does, start a new segment or add to the current one
     if (start_count == 0) {
-      start_idx <- peaks[i,3]-1
+      start_idx <- peaks[i,3]
       start_count <- i
     }
-    end_idx <- peaks[i, 4]-1
+    end_idx <- peaks[i, 4]
     
     
   } else {
@@ -94,18 +94,25 @@ for (i in 1:length(peak_positions)) {
       group_list[[length(group_list)+1]] <- current_df
     }
     start_count <- 0
-    start_idx <- peaks[i,3]-1
-    end_idx <- peaks[i, 4]-1
+    #start_idx <- peaks[i,3]
+    #end_idx <- peaks[i, 4]
     # Store the previous segment and start a new one
   }
 }
 
-if (start_row > 0) {
+if (start_count > 0) {
   current_df <- mdur_prueba1[start_idx:end_idx, c(1, 2, 3)]
   group_list[[length(group_list)+1]] <- current_df
 }
 
+#Extract each element of the list y rename the columns
+group_list
+
+
 #If the segments found are to small than discard them
+
+
+
 df_seg1 <- as.data.frame(group_list[1])
 colnames(df_seg1)[1] = "frame1"
 colnames(df_seg1)[2] = "bicep1"
@@ -136,7 +143,7 @@ plot(emg_signal,type = "l", main = "EMG Signal (Peaks Only)")
 
 points(peaks, env_peaks$y, col = "red", pch = 20)
 
-
+#-----------------------------------------------------------------------------
 for (i in seq_along(peaks)[-1]) {
   # check for onset
   if ((offset[i]-onset[i]) >= min_duration) {
