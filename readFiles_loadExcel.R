@@ -29,7 +29,7 @@ do_seg_process=function(a_csv){
   #mdur_norm$triceps <- mdur_norm$triceps/ max(mdur_norm$triceps)
   
   emg_signal <- mdur_norm$triceps
-  print(emg_signal)
+  #print(emg_signal)
   
   first_10 = mdur_norm[1:10,'triceps']
   avg_tricep10 = mean(first_10)
@@ -40,8 +40,9 @@ do_seg_process=function(a_csv){
   #cut_threshold
   
   #Identify the peaks that surpass a threshold to later know where to cut the segments 
-  peaks <- findpeaks(emg_signal, minpeakheight = cut_threshold*1.4)
-  
+  peaks <- findpeaks(emg_signal, minpeakheight = cut_threshold*1.6)
+  peak_positions <- peaks[,2]-1
+  peak_positions
   
   start_idx <- peaks[1,3]
   
@@ -62,7 +63,7 @@ do_seg_process=function(a_csv){
       
       # If it does, start a new segment or add to the current one
       if (start_count == 0) {
-        start_idx <- peaks[i+1,3]
+        start_idx <- peaks[i,3]
         start_count <- i
       }
       end_idx <- peaks[i+1, 4]
@@ -91,7 +92,7 @@ do_seg_process=function(a_csv){
   }
   
   #Extract each element of the list y rename the columns
-  group_list
+ print(group_list) 
   #Extract each element of the list y rename the columns
   #group_list
 
@@ -108,27 +109,29 @@ do_seg_process=function(a_csv){
     all_lengths <- c(all_lengths, len_segment)
     list_triceps[[length(list_triceps) + 1]] <- group_list[[i]]$triceps
   }
-  min_length <- min(all_lengths)
-  min_length
+  #min_length <- min(all_lengths)
+  #min_length
   
   # Define the desired output signal length
   desired_length <- 100
   desired_length
   
   
-  # Resample each segment to match the length of the shortest segment of the biceps que es $y
-  resampled_segments_bicep<- lapply(group_list, function(segment) {
+  # Resample each segment to match the desired length
+  resample_biceps <- lapply(group_list, function(segment) {
     resampled_segment_bicep <- approx(segment, n = desired_length, method = "linear")$y
     
     return(resampled_segment_bicep)
   } )
+  print(resample_biceps)
   
-  resampled_segments_tricep<- lapply(list_triceps, function(segment) {
+  resample_triceps<- lapply(list_triceps, function(segment) {
     resampled_segment_tricep <- approx(segment, n = desired_length, method = "linear")$y
     
     return(resampled_segment_tricep)
   } )
   
+  #print(resample_triceps)
   # Resample each segment to match the length of the shortest segment
   # for(i in length(group_list)){
   #   
@@ -138,10 +141,16 @@ do_seg_process=function(a_csv){
   # }
   
   # Combine the resampled segments into a single dataframe for each muscle
-  resampled_df_bicep <- as.data.frame(do.call(cbind, resampled_segments_bicep))
-  resampled_df_tricep <-as.data.frame(do.call(cbind, resampled_segments_tricep))
+  resampled_df_bicep <- as.data.frame(do.call(cbind, resample_biceps))
+  #print(resampled_df_bicep)
   
-  return(list(resampled_df_bicep, resampled_df_tricep))
+  resampled_df_tricep <-as.data.frame(do.call(cbind, resample_triceps))
+  #print(resampled_df_tricep)
+  
+  resampled_list_both <- list()
+  resampled_list_both <- list(resampled_df_bicep,resampled_df_tricep)
+  #print(resampled_list_both)
+  return(resampled_list_both)
   
   # Optional: Plot the resampled segments
   #par(mfrow=c(2,1))
@@ -185,38 +194,10 @@ combined_data_triceps <- do.call(rbind, data_list_t)
 #write.table(x=expand_table, file="Resultados.csv", sep=";", row.names=FALSE)
 
 my_path <- "/Users/mariaceleste/Desktop/TFG_testsR/test_saveAll/"
-write.xlsx2(combined_data_biceps, paste0(my_path, "activation_segments.xlsx"), row.names = FALSE, sheetName = "biceps_slow_y")
-write.xlsx2(combined_data_biceps, paste0(my_path, "activation_segments.xlsx"), row.names = FALSE, sheetName = "tricep_slow_y")
+write.xlsx2(combined_data_biceps, paste0(my_path, "activation_segments_biceps.xlsx"), row.names = FALSE, sheetName = "biceps_slow_y")
+write.xlsx2(combined_data_triceps, paste0(my_path, "activation_segments_triceps.xlsx"), row.names = FALSE, sheetName = "tricep_slow_y")
 
-
-basic_table=lapply(all_files,
-             FUN = do_seg_process,
-             the_dir = the_dir_ex)
-
-
-#Ojo, para que la función procesamiento se aplique igual a todos los arhivos, quizá es mejor generar siempre 4 columnas por paciente
-#y por músculo (una con los tiempos, y otra por cada repetición del músculo a estudiar), de manera que se generen, 
-#si seguimos con el ejemplo anterior, un total de 10x4=40 columnas, aunque las de tiempo estén repetidas (ya las quitaremos
-#a posteriori sobre el data frame final, antes de pasar al .csv final.
-
-#intentar con 4 solo con un csv (sus 3 segmentos del bicep y tiempo)
-expand_table=data.frame(matrix(ncol=8,nrow=0))
-
-num=2
-
-for (i in 1:length(basic_table)){
-  if(((i-1) %% num==0)&((i+num+1)<=length(basic_table))){
-    expand_table=rbind(expand_table, unlist(basic_table[i:(i+num+1)]))
-  }
-}
-
-colnames(expand_table)=c("frame1", "bseg1_1","bseg1_2","bseg1_3","frame2","bseg2_1","bseg2_2","bseg2_3")
-write.table(x=expand_table, file="Resultados.csv", sep=";", row.names=FALSE)
-
-#my_path <- "/Users/mariaceleste/Desktop/TFG_testsR/test_saveAll/"
-#Get only the columns needed (without the frames) and write the excel
-#write.xlsx2(list_csv[1], paste0(my_path, "activation_segments.xlsx"), row.names = FALSE, sheetName = "biceps_slow_y")
-
+#-----------------------------------------------------------------------------------------
 
 list_csv <- list()
 for(file in all_files){
