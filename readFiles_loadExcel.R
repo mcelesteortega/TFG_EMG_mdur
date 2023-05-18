@@ -187,15 +187,15 @@ for (i in seq_along(all_files)) {
 }
 
 # Combine the data into one huge data frame
-combined_data_biceps <- do.call(rbind, data_list_b)
-combined_data_triceps <- do.call(rbind, data_list_t)
+combined_data_biceps <- do.call(cbind, data_list_b)
+combined_data_triceps <- do.call(cbind, data_list_t)
 
 #colnames(expand_table)=c("frame1", "bseg1_1","bseg1_2","bseg1_3","frame2","bseg2_1","bseg2_2","bseg2_3")
 #write.table(x=expand_table, file="Resultados.csv", sep=";", row.names=FALSE)
 
 my_path <- "/Users/mariaceleste/Desktop/TFG_testsR/test_saveAll/"
-write.xlsx2(combined_data_biceps, paste0(my_path, "activation_segments_biceps.xlsx"), row.names = FALSE, sheetName = "biceps_slow_y")
-write.xlsx2(combined_data_triceps, paste0(my_path, "activation_segments_triceps.xlsx"), row.names = FALSE, sheetName = "tricep_slow_y")
+write.xlsx2(combined_data_biceps, paste0(my_path, "activation_segments.xlsx"), row.names = FALSE, sheetName = "biceps_slow_y")
+write.xlsx2(combined_data_triceps, paste0(my_path, "activation_segments.xlsx"), append = TRUE,row.names = FALSE, sheetName = "tricep_slow_y")
 
 #-----------------------------------------------------------------------------------------
 
